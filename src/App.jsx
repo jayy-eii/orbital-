@@ -5,7 +5,7 @@ import {
 import {
   Activity, Stethoscope, User, Users, LayoutDashboard, ClipboardList, AlertTriangle,
   Pill as PillIcon, Settings, Bell, FileText, TrendingUp, LogOut, Sparkles, Check, ChevronRight,
-  Search, Plus, X, Clock, HeartPulse, ShieldCheck, ArrowLeft, Loader2, CalendarDays, Menu,
+  Search, Plus, X, Clock, HeartPulse, ShieldCheck, ArrowLeft, Loader2, CalendarDays, Menu, Camera,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -71,6 +71,32 @@ const DIAGNOSIS_TAGS = [
   "Obesity", "Pre-diabetes", "CAD", "Hypothyroidism",
 ];
 
+const MOCK_RX_PHOTO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="500" viewBox="0 0 380 500">
+  <rect width="380" height="500" fill="#FBF8F0"/>
+  <rect x="6" y="6" width="368" height="488" fill="none" stroke="#D8D2C0" stroke-width="1.5"/>
+  <text x="190" y="42" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#2B2B2B">Sunrise Family Clinic</text>
+  <text x="190" y="62" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#6b6b6b">Dr. Anjali Rao . MBBS, MD (General Medicine)</text>
+  <line x1="24" y1="76" x2="356" y2="76" stroke="#D8D2C0" stroke-width="1"/>
+  <text x="24" y="102" font-family="Georgia, serif" font-size="12" fill="#333">Patient: Aarav Sharma, 54 / M</text>
+  <text x="24" y="120" font-family="Georgia, serif" font-size="12" fill="#333">Date: 24 Aug 2026</text>
+  <text x="24" y="168" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#B23B2E">Rx</text>
+  <g font-family="'Brush Script MT', 'Segoe Script', cursive" fill="#26417a">
+    <text x="70" y="168" font-size="20" transform="rotate(-2 70 168)">Tab. Metformin 1000mg</text>
+    <text x="90" y="200" font-size="15" fill="#444" font-family="Georgia, serif">1 tab BID, after meals x 30 days</text>
+    <text x="70" y="238" font-size="20" transform="rotate(1.5 70 238)">Tab. Atorvastatin 10mg</text>
+    <text x="90" y="268" font-size="15" fill="#444" font-family="Georgia, serif">1 tab at night x 30 days</text>
+  </g>
+  <path d="M70 300 q20 -10 40 0 t40 0 t40 0 t40 0" stroke="#26417a" stroke-width="1.4" fill="none" opacity="0.55"/>
+  <path d="M70 320 q15 8 30 0 t30 0 t30 0" stroke="#26417a" stroke-width="1.2" fill="none" opacity="0.4"/>
+  <text x="24" y="380" font-family="Georgia, serif" font-size="12" fill="#333">Advice: Recheck HbA1c in 6 weeks.</text>
+  <text x="24" y="398" font-family="Georgia, serif" font-size="12" fill="#333">Low-sugar diet, 30 min walk daily.</text>
+  <line x1="230" y1="440" x2="356" y2="440" stroke="#999" stroke-width="1"/>
+  <text x="293" y="460" text-anchor="middle" font-family="'Brush Script MT', 'Segoe Script', cursive" font-size="22" fill="#1d1d1d">Dr. A. Rao</text>
+  <text x="293" y="476" text-anchor="middle" font-family="Georgia, serif" font-size="10" fill="#777">Signature</text>
+</svg>`;
+
+const MOCK_RX_PHOTO = `data:image/svg+xml,${encodeURIComponent(MOCK_RX_PHOTO_SVG)}`;
+
 function genVitals(base, days, drift) {
   const out = [];
   const today = new Date();
@@ -96,7 +122,16 @@ const INITIAL_PATIENTS = [
     avatarColor: T.accent,
     vitals: genVitals({ sys: 128, dia: 82, sugar: 145, weight: 82 }, 10, { sys: 1.2, dia: 0.3, sugar: 2.1, weight: 0.05 }),
     notes: [
-      { id: "n0", date: "24 Aug", soap: { subjective: "Patient reports fatigue and mild thirst over the past week.", objective: "BP 132/84, FBS 152 mg/dL, weight stable.", assessment: "Suboptimal glycemic control.", plan: "Increase Metformin to 1000mg BID, recheck HbA1c in 6 weeks." }, approved: true },
+      {
+        id: "n0", date: "24 Aug", doctor: "Dr. Anjali Rao",
+        soap: { subjective: "Patient reports fatigue and mild thirst over the past week.", objective: "BP 132/84, FBS 152 mg/dL, weight stable.", assessment: "Suboptimal glycemic control.", plan: "Increase Metformin to 1000mg BID, recheck HbA1c in 6 weeks." },
+        approved: true,
+        prescriptions: [
+          { id: "rx1", medicine: "Metformin", dosage: "1000mg", freq: "Twice daily", duration: "30 days" },
+          { id: "rx2", medicine: "Atorvastatin", dosage: "10mg", freq: "Once at night", duration: "30 days" },
+        ],
+        prescriptionImage: MOCK_RX_PHOTO,
+      },
     ],
     prescriptions: [
       { id: "rx1", medicine: "Metformin", dosage: "500mg", freq: "Twice daily", duration: "30 days" },
@@ -158,6 +193,21 @@ const INITIAL_PATIENTS = [
     symptomLog: [],
     reminders: [],
     afterVisitSummary: "",
+  },
+];
+
+const DOCTORS = [
+  { id: "d1", name: "Dr. Anjali Rao", specialty: "General Medicine", clinic: "Sunrise Family Clinic, Aurangabad", avatarColor: T.accent },
+  { id: "d2", name: "Dr. Rohan Mehta", specialty: "Cardiology", clinic: "Sunrise Family Clinic, Aurangabad", avatarColor: T.blue },
+  { id: "d3", name: "Dr. Priya Nair", specialty: "Endocrinology", clinic: "Sunrise Family Clinic, Aurangabad", avatarColor: T.mint },
+];
+
+const INITIAL_APPOINTMENTS = [
+  {
+    id: "ap1", patientId: "p2", doctorId: "d1",
+    reason: "BP has been running high on home readings, would like it reviewed.",
+    preferredDate: "", preferredTime: "", requestedAt: "2 Sep",
+    status: "pending", assignedDate: "", assignedTime: "",
   },
 ];
 
@@ -564,7 +614,7 @@ function Shell({ role, navItems, active, onNavigate, onExit, userLabel, userSub,
 /* DOCTOR PORTAL                                                           */
 /* ---------------------------------------------------------------------- */
 
-function DoctorPortal({ patients, setPatients, onExit }) {
+function DoctorPortal({ patients, setPatients, appointments, setAppointments, onExit }) {
   const [section, setSection] = useState("dashboard");
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
@@ -575,10 +625,16 @@ function DoctorPortal({ patients, setPatients, onExit }) {
       .filter((x) => x.reasons.length > 0);
   }, [patients]);
 
+  const pendingAppointments = useMemo(
+    () => appointments.filter((a) => a.status === "pending"),
+    [appointments]
+  );
+
   const navItems = [
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { key: "patients", label: "Patients", icon: Users },
     { key: "alerts", label: "Alerts", icon: AlertTriangle, badge: alerts.length || undefined },
+    { key: "appointments", label: "Appointments", icon: CalendarDays, badge: pendingAppointments.length || undefined },
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -587,6 +643,14 @@ function DoctorPortal({ patients, setPatients, onExit }) {
   const updatePatient = useCallback((id, updater) => {
     setPatients((prev) => prev.map((p) => (p.id === id ? updater(p) : p)));
   }, [setPatients]);
+
+  const approveAppointment = useCallback((id, date, time) => {
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "approved", assignedDate: date, assignedTime: time } : a)));
+  }, [setAppointments]);
+
+  const declineAppointment = useCallback((id) => {
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "declined" } : a)));
+  }, [setAppointments]);
 
   const selectedPatient = patients.find((p) => p.id === selectedId);
 
@@ -608,6 +672,14 @@ function DoctorPortal({ patients, setPatients, onExit }) {
       )}
       {section === "alerts" && (
         <AlertsPanel alerts={alerts} onOpen={openPatient} />
+      )}
+      {section === "appointments" && (
+        <DoctorAppointmentsSection
+          appointments={appointments}
+          patients={patients}
+          onApprove={approveAppointment}
+          onDecline={declineAppointment}
+        />
       )}
       {section === "settings" && <DoctorSettings />}
       {section === "patient-detail" && selectedPatient && (
@@ -839,6 +911,79 @@ function PatientDetail({ patient, onBack, onUpdate }) {
   );
 }
 
+function VisitNoteCard({ note }) {
+  const [showRx, setShowRx] = useState(false);
+  const hasRxList = note.prescriptions && note.prescriptions.length > 0;
+  const hasRxContent = hasRxList || note.prescriptionImage;
+
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textTertiary }}>
+          <CalendarDays size={13} /> {note.date}
+        </div>
+        {note.approved && <Pill tone="mint"><Check size={11} /> Approved</Pill>}
+      </div>
+
+      {note.doctor && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 13, color: T.textPrimary }}>
+          <Stethoscope size={14} color={T.accent} />
+          <span style={{ fontWeight: 600 }}>{note.doctor}</span>
+        </div>
+      )}
+
+      {["subjective", "objective", "assessment", "plan"].map((k) => (
+        <div key={k} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, textTransform: "capitalize", color: T.textTertiary, marginBottom: 2 }}>{k}</div>
+          <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.5 }}>{note.soap[k]}</div>
+        </div>
+      ))}
+
+      {hasRxContent && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+          <button
+            onClick={() => setShowRx((v) => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: T.accent, fontSize: 12.5, fontWeight: 600, padding: 0 }}
+          >
+            <PillIcon size={13} />
+            {showRx ? "Hide prescription" : "View prescription"}
+            <ChevronRight size={13} style={{ transform: showRx ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+          </button>
+
+          {showRx && (
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+              {hasRxList && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {note.prescriptions.map((rx) => (
+                    <div key={rx.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: T.bgElevated, borderRadius: 9, border: `1px solid ${T.border}` }}>
+                      <PillIcon size={14} color={T.mint} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary }}>{rx.medicine} <span style={{ color: T.textTertiary, fontWeight: 400 }}>· {rx.dosage}</span></div>
+                        <div style={{ fontSize: 11.5, color: T.textSecondary }}>{rx.freq} · {rx.duration}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {note.prescriptionImage && (
+                <div>
+                  <div style={{ fontSize: 11.5, color: T.textTertiary, marginBottom: 6 }}>Handwritten prescription</div>
+                  <img
+                    src={note.prescriptionImage}
+                    alt="Handwritten prescription"
+                    onClick={() => window.open(note.prescriptionImage, "_blank")}
+                    style={{ maxWidth: 220, width: "100%", borderRadius: 10, border: `1px solid ${T.border}`, display: "block", cursor: "zoom-in" }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function HistoryTab({ patient }) {
   return (
     <div>
@@ -849,22 +994,7 @@ function HistoryTab({ patient }) {
         <Card><div style={{ fontSize: 13.5, color: T.textTertiary }}>No past visit notes yet — start one from the Note & AI SOAP tab.</div></Card>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {[...patient.notes].reverse().map((n) => (
-          <Card key={n.id}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textTertiary }}>
-                <CalendarDays size={13} /> {n.date}
-              </div>
-              {n.approved && <Pill tone="mint"><Check size={11} /> Approved</Pill>}
-            </div>
-            {["subjective", "objective", "assessment", "plan"].map((k) => (
-              <div key={k} style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 11, textTransform: "capitalize", color: T.textTertiary, marginBottom: 2 }}>{k}</div>
-                <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.5 }}>{n.soap[k]}</div>
-              </div>
-            ))}
-          </Card>
-        ))}
+        {[...patient.notes].reverse().map((n) => <VisitNoteCard key={n.id} note={n} />)}
       </div>
     </div>
   );
@@ -925,6 +1055,17 @@ function NoteTab({ patient, onUpdate }) {
   const [error, setError] = useState("");
   const [draft, setDraft] = useState(null);
   const [selectedTags, setSelectedTags] = useState(patient.tags);
+  const [rxPhoto, setRxPhoto] = useState(null);
+  const photoInputRef = React.useRef(null);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRxPhoto(reader.result);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const generate = async () => {
     if (!freeText.trim()) return;
@@ -956,10 +1097,13 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
     if (!draft) return;
     const newNote = {
       id: `n${Date.now()}`, date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+      doctor: "Dr. Anjali Rao",
       soap: draft, approved: true,
+      prescriptions: patient.prescriptions,
+      prescriptionImage: rxPhoto,
     };
     onUpdate((p) => ({ ...p, notes: [...p.notes, newNote], tags: selectedTags }));
-    setDraft(null); setFreeText("");
+    setDraft(null); setFreeText(""); setRxPhoto(null);
   };
 
   return (
@@ -989,6 +1133,26 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
               }}>{tag}</button>
             ))}
           </div>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 12.5, color: T.textSecondary, marginBottom: 8, fontWeight: 500 }}>Handwritten prescription photo (optional)</div>
+          <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+          <Button variant="subtle" icon={Camera} onClick={() => photoInputRef.current?.click()}>
+            {rxPhoto ? "Change photo" : "Attach photo"}
+          </Button>
+          {rxPhoto && (
+            <div style={{ marginTop: 10, position: "relative", display: "inline-block" }}>
+              <img src={rxPhoto} alt="Handwritten prescription" style={{ maxWidth: 160, borderRadius: 8, border: `1px solid ${T.border}`, display: "block" }} />
+              <button
+                onClick={() => setRxPhoto(null)}
+                aria-label="Remove photo"
+                style={{ position: "absolute", top: -8, right: -8, background: T.red, border: "none", borderRadius: "50%", width: 20, height: 20, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -1062,7 +1226,7 @@ function PrescriptionsTab({ patient, onUpdate }) {
 /* PATIENT PORTAL                                                          */
 /* ---------------------------------------------------------------------- */
 
-function PatientPortal({ patients, setPatients, onExit }) {
+function PatientPortal({ patients, setPatients, appointments, setAppointments, onExit }) {
   const [patientId, setPatientId] = useState(patients[0].id);
   const [section, setSection] = useState("dashboard");
   const patient = patients.find((p) => p.id === patientId);
@@ -1070,6 +1234,18 @@ function PatientPortal({ patients, setPatients, onExit }) {
   const updatePatient = useCallback((updater) => {
     setPatients((prev) => prev.map((p) => (p.id === patientId ? updater(p) : p)));
   }, [setPatients, patientId]);
+
+  const requestAppointment = useCallback(({ doctorId, reason, preferredDate, preferredTime }) => {
+    const newAppt = {
+      id: `ap${Date.now()}`, patientId, doctorId, reason,
+      preferredDate, preferredTime,
+      requestedAt: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+      status: "pending", assignedDate: "", assignedTime: "",
+    };
+    setAppointments((prev) => [...prev, newAppt]);
+  }, [setAppointments, patientId]);
+
+  const myAppointments = appointments.filter((a) => a.patientId === patientId);
 
   const navItems = [
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -1080,6 +1256,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
     { key: "symptoms", label: "Symptom log", icon: FileText },
     { key: "history", label: "My summary", icon: CalendarDays },
     { key: "summary", label: "Visit summary", icon: Sparkles },
+    { key: "appointments", label: "Appointments", icon: Stethoscope },
     { key: "notifications", label: "Notifications", icon: Bell, badge: 2 },
     { key: "settings", label: "Settings", icon: Settings },
   ];
@@ -1102,6 +1279,9 @@ function PatientPortal({ patients, setPatients, onExit }) {
       {section === "symptoms" && <SymptomLogSection patient={patient} onUpdate={updatePatient} />}
       {section === "history" && <PatientSummarySection patient={patient} />}
       {section === "summary" && <VisitSummarySection patient={patient} onUpdate={updatePatient} />}
+      {section === "appointments" && (
+        <PatientAppointmentsSection appointments={myAppointments} onRequest={requestAppointment} />
+      )}
       {section === "notifications" && <NotificationsSection patient={patient} />}
       {section === "settings" && <PatientSettings patient={patient} />}
     </Shell>
@@ -1340,18 +1520,7 @@ function PatientSummarySection({ patient }) {
           <Card><div style={{ fontSize: 13, color: T.textTertiary }}>No visit notes on file yet.</div></Card>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {notesSorted.map((n) => (
-              <Card key={n.id}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textTertiary }}>
-                    <CalendarDays size={13} /> {n.date}
-                  </div>
-                  {n.approved && <Pill tone="mint"><Check size={11} /> Reviewed by doctor</Pill>}
-                </div>
-                <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.55, marginBottom: 6 }}><strong>What was found: </strong>{n.soap.assessment}</div>
-                <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.55 }}><strong>Plan: </strong>{n.soap.plan}</div>
-              </Card>
-            ))}
+            {notesSorted.map((n) => <VisitNoteCard key={n.id} note={n} />)}
           </div>
         )}
       </div>
@@ -1401,6 +1570,179 @@ function PatientSettings({ patient }) {
         </div>
         <Button style={{ marginTop: 18 }}>Save changes</Button>
       </Card>
+    </div>
+  );
+}
+
+function PatientAppointmentsSection({ appointments, onRequest }) {
+  const isNarrow = useIsNarrow(760);
+  const [openDoctorId, setOpenDoctorId] = useState(null);
+  const [reason, setReason] = useState("");
+  const [preferredDate, setPreferredDate] = useState("");
+  const [preferredTime, setPreferredTime] = useState("");
+
+  const statusTone = { pending: "accent", approved: "mint", declined: "red" };
+  const statusLabel = { pending: "Pending", approved: "Confirmed", declined: "Declined" };
+
+  const openFor = (id) => { setOpenDoctorId(id); setReason(""); setPreferredDate(""); setPreferredTime(""); };
+  const cancel = () => setOpenDoctorId(null);
+
+  const submit = (doctorId) => {
+    if (!reason.trim()) return;
+    onRequest({ doctorId, reason: reason.trim(), preferredDate, preferredTime });
+    setOpenDoctorId(null);
+  };
+
+  return (
+    <div>
+      <SectionHeader eyebrow="Book a visit" title="Appointments" />
+
+      <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 12 }}>Your care team</div>
+      <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fill, minmax(250px, 1fr))", gap: 14, marginBottom: 30 }}>
+        {DOCTORS.map((d) => (
+          <Card key={d.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <Avatar name={d.name} color={d.avatarColor} size={42} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>{d.name}</div>
+                <div style={{ fontSize: 12, color: T.textSecondary }}>{d.specialty}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: T.textTertiary, marginBottom: 14 }}>{d.clinic}</div>
+
+            {openDoctorId === d.id ? (
+              <div>
+                <Field label="Reason for visit">
+                  <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} style={{ ...inputStyle, resize: "vertical" }} placeholder="e.g. Follow-up on blood pressure" />
+                </Field>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 120px" }}>
+                    <Field label="Preferred date"><input type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} style={inputStyle} /></Field>
+                  </div>
+                  <div style={{ flex: "1 1 120px" }}>
+                    <Field label="Preferred time"><input type="time" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} style={inputStyle} /></Field>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button icon={Check} onClick={() => submit(d.id)} disabled={!reason.trim()}>Send request</Button>
+                  <Button variant="ghost" onClick={cancel}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="subtle" icon={Plus} onClick={() => openFor(d.id)}>Request appointment</Button>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 12 }}>My requests</div>
+      {appointments.length === 0 ? (
+        <Card><div style={{ fontSize: 13, color: T.textTertiary }}>No appointment requests yet.</div></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[...appointments].reverse().map((a) => {
+            const doc = DOCTORS.find((d) => d.id === a.doctorId);
+            return (
+              <Card key={a.id}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: T.textPrimary }}>{doc?.name || "Doctor"}</div>
+                    <div style={{ fontSize: 12.5, color: T.textSecondary, marginTop: 2 }}>{a.reason}</div>
+                    {a.status === "approved" ? (
+                      <div style={{ fontSize: 12.5, color: T.mint, marginTop: 6, ...mono }}>Confirmed for {a.assignedDate} at {a.assignedTime}</div>
+                    ) : a.preferredDate ? (
+                      <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 6 }}>Requested for {a.preferredDate}{a.preferredTime ? ` at ${a.preferredTime}` : ""}</div>
+                    ) : null}
+                  </div>
+                  <Pill tone={statusTone[a.status]}>{statusLabel[a.status]}</Pill>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DoctorAppointmentsSection({ appointments, patients, onApprove, onDecline }) {
+  const [assigningId, setAssigningId] = useState(null);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+
+  const patientName = (id) => patients.find((p) => p.id === id)?.name || "Unknown patient";
+  const pending = appointments.filter((a) => a.status === "pending");
+  const upcoming = appointments.filter((a) => a.status === "approved");
+
+  const startAssign = (a) => { setAssigningId(a.id); setDate(a.preferredDate || ""); setTime(a.preferredTime || ""); };
+  const confirm = (id) => {
+    if (!date || !time) return;
+    onApprove(id, date, time);
+    setAssigningId(null); setDate(""); setTime("");
+  };
+
+  return (
+    <div>
+      <SectionHeader eyebrow="Requests from patients" title="Appointments" />
+
+      <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 12 }}>Pending requests</div>
+      {pending.length === 0 ? (
+        <Card style={{ marginBottom: 26 }}><div style={{ fontSize: 13.5, color: T.textTertiary }}>No pending appointment requests.</div></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 26 }}>
+          {pending.map((a) => (
+            <Card key={a.id}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>{patientName(a.patientId)}</div>
+                  <div style={{ fontSize: 12.5, color: T.textSecondary, marginTop: 3 }}>{a.reason}</div>
+                  {a.preferredDate && (
+                    <div style={{ fontSize: 12, color: T.textTertiary, marginTop: 6 }}>Preferred: {a.preferredDate}{a.preferredTime ? ` at ${a.preferredTime}` : ""}</div>
+                  )}
+                  <div style={{ fontSize: 11, color: T.textTertiary, marginTop: 4 }}>Requested {a.requestedAt}</div>
+                </div>
+                {assigningId !== a.id && (
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <Button icon={Check} onClick={() => startAssign(a)}>Approve</Button>
+                    <Button variant="danger" icon={X} onClick={() => onDecline(a.id)}>Decline</Button>
+                  </div>
+                )}
+              </div>
+              {assigningId === a.id && (
+                <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 14, paddingTop: 14, display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <Field label="Date"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></Field>
+                  </div>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <Field label="Time"><input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle} /></Field>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                    <Button icon={Check} onClick={() => confirm(a.id)} disabled={!date || !time}>Confirm</Button>
+                    <Button variant="ghost" onClick={() => setAssigningId(null)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 12 }}>Upcoming</div>
+      {upcoming.length === 0 ? (
+        <Card><div style={{ fontSize: 13.5, color: T.textTertiary }}>No confirmed appointments yet.</div></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {upcoming.map((a) => (
+            <Card key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.textPrimary }}>{patientName(a.patientId)}</div>
+                <div style={{ fontSize: 12, color: T.textSecondary }}>{a.reason}</div>
+              </div>
+              <Pill tone="mint"><CalendarDays size={11} /> {a.assignedDate} · {a.assignedTime}</Pill>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1472,12 +1814,25 @@ export default function App() {
   useFonts();
   const [role, setRole] = useState("landing");
   const [patients, setPatients] = useState(INITIAL_PATIENTS);
+  const [appointments, setAppointments] = useState(INITIAL_APPOINTMENTS);
 
   return (
     <div style={{ ...body }}>
       {role === "landing" && <Landing onSelect={setRole} />}
-      {role === "doctor" && <DoctorPortal patients={patients} setPatients={setPatients} onExit={() => setRole("landing")} />}
-      {role === "patient" && <PatientPortal patients={patients} setPatients={setPatients} onExit={() => setRole("landing")} />}
+      {role === "doctor" && (
+        <DoctorPortal
+          patients={patients} setPatients={setPatients}
+          appointments={appointments} setAppointments={setAppointments}
+          onExit={() => setRole("landing")}
+        />
+      )}
+      {role === "patient" && (
+        <PatientPortal
+          patients={patients} setPatients={setPatients}
+          appointments={appointments} setAppointments={setAppointments}
+          onExit={() => setRole("landing")}
+        />
+      )}
       {role === "admin" && <AdminPortal patients={patients} onExit={() => setRole("landing")} />}
     </div>
   );
