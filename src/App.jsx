@@ -1066,6 +1066,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
     { key: "careplan", label: "Care plan", icon: ClipboardList },
     { key: "meds", label: "Medications", icon: PillIcon },
     { key: "symptoms", label: "Symptom log", icon: FileText },
+    { key: "history", label: "My summary", icon: CalendarDays },
     { key: "summary", label: "Visit summary", icon: Sparkles },
     { key: "notifications", label: "Notifications", icon: Bell, badge: 2 },
     { key: "settings", label: "Settings", icon: Settings },
@@ -1087,6 +1088,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
       {section === "careplan" && <CarePlanSection patient={patient} />}
       {section === "meds" && <MedicationsSection patient={patient} onUpdate={updatePatient} />}
       {section === "symptoms" && <SymptomLogSection patient={patient} onUpdate={updatePatient} />}
+      {section === "history" && <PatientSummarySection patient={patient} />}
       {section === "summary" && <VisitSummarySection patient={patient} onUpdate={updatePatient} />}
       {section === "notifications" && <NotificationsSection patient={patient} />}
       {section === "settings" && <PatientSettings patient={patient} />}
