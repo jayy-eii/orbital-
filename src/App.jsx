@@ -5,7 +5,7 @@ import {
 import {
   Activity, Stethoscope, User, Users, LayoutDashboard, ClipboardList, AlertTriangle,
   Pill as PillIcon, Settings, Bell, FileText, TrendingUp, LogOut, Sparkles, Check, ChevronRight,
-  Search, Plus, X, Clock, HeartPulse, ShieldCheck, ArrowLeft, Loader2, CalendarDays,
+  Search, Plus, X, Clock, HeartPulse, ShieldCheck, ArrowLeft, Loader2, CalendarDays, Menu,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -158,6 +158,28 @@ function isAbnormal(v) {
   if (v.sys >= 140 || v.dia >= 90) reasons.push(`BP ${v.sys}/${v.dia} mmHg`);
   if (v.sugar >= 160) reasons.push(`Sugar ${v.sugar} mg/dL`);
   return reasons;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Responsive helper                                                      */
+/* ---------------------------------------------------------------------- */
+
+function useIsNarrow(breakpoint = 860) {
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= breakpoint
+  );
+  React.useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setIsNarrow(e.matches);
+    setIsNarrow(mq.matches);
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", handler);
+      else mq.removeListener(handler);
+    };
+  }, [breakpoint]);
+  return isNarrow;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -336,16 +358,17 @@ function EKGLine() {
 }
 
 function Landing({ onSelect }) {
+  const isNarrow = useIsNarrow(520);
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative", overflow: "hidden", boxSizing: "border-box" }}>
       <div style={{ position: "absolute", top: "38%", left: 0, right: 0, opacity: 0.55 }}>
         <EKGLine />
       </div>
-      <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 620 }}>
+      <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 620, width: "100%" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, ...body, fontSize: 13, color: T.textTertiary, marginBottom: 18, letterSpacing: 0.2 }}>
           <HeartPulse size={15} color={T.accent} /> Chronic-care documentation, built for the visit and the days between
         </div>
-        <h1 style={{ ...heading, fontSize: 44, lineHeight: 1.12, color: T.textPrimary, margin: "0 0 14px", fontWeight: 600 }}>
+        <h1 style={{ ...heading, fontSize: isNarrow ? 30 : 44, lineHeight: 1.12, color: T.textPrimary, margin: "0 0 14px", fontWeight: 600 }}>
           One record.<br />Two people watching it.
         </h1>
         <p style={{ ...body, fontSize: 15.5, color: T.textSecondary, lineHeight: 1.6, margin: "0 0 40px" }}>
@@ -371,7 +394,7 @@ function RoleCard({ icon: Icon, title, desc, color, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        width: 230, textAlign: "left", padding: 22, borderRadius: 16, cursor: "pointer",
+        width: "min(230px, 100%)", boxSizing: "border-box", textAlign: "left", padding: 22, borderRadius: 16, cursor: "pointer",
         background: hover ? T.surfaceHover : T.surface, border: `1px solid ${hover ? color : T.border}`,
         transition: "all .18s ease", transform: hover ? "translateY(-2px)" : "none",
       }}
@@ -389,57 +412,136 @@ function RoleCard({ icon: Icon, title, desc, color, onClick }) {
 /* Shell (sidebar + topbar) shared by doctor/patient/admin                */
 /* ---------------------------------------------------------------------- */
 
+function SidebarNav({ navItems, active, onNavigate, onExit, userLabel, userSub, accentColor }) {
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 8px", marginBottom: 30 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${accentColor}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Activity size={16} color={accentColor} />
+        </div>
+        <span style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary }}>CarePath</span>
+      </div>
+
+      <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+        {navItems.map((item) => {
+          const isActive = active === item.key;
+          return (
+            <button
+              key={item.key}
+              onClick={() => onNavigate(item.key)}
+              style={{
+                display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 9,
+                background: isActive ? `${accentColor}17` : "transparent", border: "none", cursor: "pointer",
+                color: isActive ? accentColor : T.textSecondary, fontSize: 13.5, fontWeight: isActive ? 600 : 500,
+                textAlign: "left", width: "100%", position: "relative",
+              }}
+            >
+              <item.icon size={16} />
+              {item.label}
+              {item.badge ? (
+                <span style={{ marginLeft: "auto", background: T.red, color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "1px 6px", borderRadius: 100 }}>
+                  {item.badge}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 12 }}>
+          <Avatar name={userLabel} color={accentColor} size={32} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, color: T.textPrimary, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userLabel}</div>
+            <div style={{ fontSize: 11, color: T.textTertiary }}>{userSub}</div>
+          </div>
+        </div>
+        <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 9, background: "transparent", border: "none", cursor: "pointer", color: T.textTertiary, fontSize: 13, width: "100%" }}>
+          <LogOut size={15} /> Switch portal
+        </button>
+      </div>
+    </>
+  );
+}
+
 function Shell({ role, navItems, active, onNavigate, onExit, userLabel, userSub, accentColor, children }) {
+  const isMobile = useIsNarrow(880);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  if (isMobile) {
+    return (
+      <div style={{ minHeight: "100vh", background: T.bg, ...body }}>
+        <header style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          padding: "14px 16px", borderBottom: `1px solid ${T.border}`, background: T.bgElevated,
+          position: "sticky", top: 0, zIndex: 20,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: `${accentColor}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Activity size={15} color={accentColor} />
+            </div>
+            <span style={{ ...heading, fontSize: 14.5, fontWeight: 600, color: T.textPrimary }}>CarePath</span>
+          </div>
+          <button
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: 7, cursor: "pointer", color: T.textPrimary, display: "flex" }}
+          >
+            <Menu size={18} />
+          </button>
+        </header>
+
+        {menuOpen && (
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 30, display: "flex" }}
+          >
+            <aside
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "min(260px, 82vw)", height: "100%", background: T.bgElevated, borderRight: `1px solid ${T.border}`,
+                display: "flex", flexDirection: "column", padding: "18px 14px", boxSizing: "border-box",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+                <button onClick={() => setMenuOpen(false)} aria-label="Close menu" style={{ background: "none", border: "none", cursor: "pointer", color: T.textTertiary, padding: 4 }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <SidebarNav
+                navItems={navItems}
+                active={active}
+                onNavigate={(k) => { onNavigate(k); setMenuOpen(false); }}
+                onExit={onExit}
+                userLabel={userLabel}
+                userSub={userSub}
+                accentColor={accentColor}
+              />
+            </aside>
+          </div>
+        )}
+
+        <main style={{ padding: "20px 16px 50px", boxSizing: "border-box", maxWidth: "100%", overflowX: "hidden" }}>
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", ...body }}>
       <aside style={{ width: 232, flexShrink: 0, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", padding: "22px 14px", background: T.bgElevated }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 8px", marginBottom: 30 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: `${accentColor}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Activity size={16} color={accentColor} />
-          </div>
-          <span style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary }}>CarePath</span>
-        </div>
-
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-          {navItems.map((item) => {
-            const isActive = active === item.key;
-            return (
-              <button
-                key={item.key}
-                onClick={() => onNavigate(item.key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 9,
-                  background: isActive ? `${accentColor}17` : "transparent", border: "none", cursor: "pointer",
-                  color: isActive ? accentColor : T.textSecondary, fontSize: 13.5, fontWeight: isActive ? 600 : 500,
-                  textAlign: "left", width: "100%", position: "relative",
-                }}
-              >
-                <item.icon size={16} />
-                {item.label}
-                {item.badge ? (
-                  <span style={{ marginLeft: "auto", background: T.red, color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "1px 6px", borderRadius: 100 }}>
-                    {item.badge}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 12 }}>
-            <Avatar name={userLabel} color={accentColor} size={32} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, color: T.textPrimary, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userLabel}</div>
-              <div style={{ fontSize: 11, color: T.textTertiary }}>{userSub}</div>
-            </div>
-          </div>
-          <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 9, background: "transparent", border: "none", cursor: "pointer", color: T.textTertiary, fontSize: 13, width: "100%" }}>
-            <LogOut size={15} /> Switch portal
-          </button>
-        </div>
+        <SidebarNav
+          navItems={navItems}
+          active={active}
+          onNavigate={onNavigate}
+          onExit={onExit}
+          userLabel={userLabel}
+          userSub={userSub}
+          accentColor={accentColor}
+        />
       </aside>
-      <main style={{ flex: 1, minWidth: 0, padding: "30px 36px 60px", maxWidth: 1180 }}>
+      <main style={{ flex: 1, minWidth: 0, padding: "30px 36px 60px", boxSizing: "border-box" }}>
         {children}
       </main>
     </div>
@@ -521,6 +623,7 @@ function StatCard({ label, value, icon: Icon, color, sub }) {
 }
 
 function DoctorDashboard({ patients, alerts, onOpenPatient }) {
+  const isNarrow = useIsNarrow(980);
   return (
     <div>
       <SectionHeader eyebrow="Good morning" title="Today's overview" />
@@ -531,7 +634,7 @@ function DoctorDashboard({ patients, alerts, onOpenPatient }) {
         <StatCard label="Active prescriptions" value={patients.reduce((n, p) => n + p.prescriptions.length, 0)} icon={PillIcon} color={T.mint} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1.4fr 1fr", gap: 20 }}>
         <Card>
           <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 14 }}>Your patients</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -593,10 +696,10 @@ function PatientList({ patients, search, setSearch, onOpen }) {
         eyebrow="Panel"
         title="Patients"
         action={
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 260 }}>
             <Search size={14} color={T.textTertiary} style={{ position: "absolute", left: 11, top: 10 }} />
             <input placeholder="Search patients" value={search} onChange={(e) => setSearch(e.target.value)}
-              style={{ ...inputStyle, paddingLeft: 32, width: 220 }} />
+              style={{ ...inputStyle, paddingLeft: 32, width: "100%" }} />
           </div>
         }
       />
@@ -697,16 +800,16 @@ function PatientDetail({ patient, onBack, onUpdate }) {
         <ArrowLeft size={14} /> All patients
       </button>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22, flexWrap: "wrap" }}>
         <Avatar name={patient.name} color={patient.avatarColor} size={52} />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
           <h2 style={{ ...heading, fontSize: 22, fontWeight: 600, color: T.textPrimary, margin: "0 0 4px" }}>{patient.name}</h2>
           <div style={{ fontSize: 13, color: T.textSecondary }}>{patient.age} yrs · {patient.gender} · {patient.condition}</div>
         </div>
         {abnormal.length > 0 && <Pill tone="red"><AlertTriangle size={12} /> {abnormal.join(" · ")}</Pill>}
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 22, borderBottom: `1px solid ${T.border}`, paddingBottom: 2 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 22, borderBottom: `1px solid ${T.border}`, paddingBottom: 2, overflowX: "auto" }}>
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: "9px 4px", marginRight: 22, background: "none", border: "none", cursor: "pointer",
@@ -756,6 +859,7 @@ function HistoryTab({ patient }) {
 }
 
 function VitalsTrendTab({ patient }) {
+  const isNarrow = useIsNarrow(760);
   return (
     <div>
       <Card style={{ marginBottom: 16 }}>
@@ -772,7 +876,7 @@ function VitalsTrendTab({ patient }) {
           </LineChart>
         </ResponsiveContainer>
       </Card>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 16 }}>
         <Card>
           <div style={{ ...heading, fontSize: 14, fontWeight: 600, color: T.textPrimary, marginBottom: 16 }}>Blood sugar (mg/dL)</div>
           <ResponsiveContainer width="100%" height={180}>
@@ -803,6 +907,7 @@ function VitalsTrendTab({ patient }) {
 }
 
 function NoteTab({ patient, onUpdate }) {
+  const isNarrow = useIsNarrow(880);
   const [freeText, setFreeText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -846,7 +951,7 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 20, alignItems: "start" }}>
       <Card>
         <div style={{ ...heading, fontSize: 14, fontWeight: 600, color: T.textPrimary, marginBottom: 4 }}>Consultation notes</div>
         <div style={{ fontSize: 12, color: T.textTertiary, marginBottom: 12 }}>Type freely — the AI will structure it into a SOAP note.</div>
@@ -897,6 +1002,7 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
 }
 
 function PrescriptionsTab({ patient, onUpdate }) {
+  const isNarrow = useIsNarrow(880);
   const [form, setForm] = useState({ medicine: "", dosage: "", freq: "Once daily", duration: "30 days" });
 
   const add = () => {
@@ -907,7 +1013,7 @@ function PrescriptionsTab({ patient, onUpdate }) {
   const remove = (id) => onUpdate((p) => ({ ...p, prescriptions: p.prescriptions.filter((r) => r.id !== id) }));
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 20, alignItems: "start" }}>
       <Card>
         <div style={{ ...heading, fontSize: 14, fontWeight: 600, color: T.textPrimary, marginBottom: 14 }}>Add prescription</div>
         <Field label="Medicine name"><input value={form.medicine} onChange={(e) => setForm({ ...form, medicine: e.target.value })} style={inputStyle} placeholder="e.g. Metformin" /></Field>
@@ -971,7 +1077,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
       userLabel={patient.name} userSub={patient.condition} accentColor={T.mint}
     >
       <div style={{ marginBottom: 18 }}>
-        <select value={patientId} onChange={(e) => { setPatientId(e.target.value); }} style={{ ...inputStyle, width: 220, fontSize: 12.5 }}>
+        <select value={patientId} onChange={(e) => { setPatientId(e.target.value); }} style={{ ...inputStyle, width: "100%", maxWidth: 260, fontSize: 12.5 }}>
           {patients.map((p) => <option key={p.id} value={p.id}>Viewing as: {p.name}</option>)}
         </select>
       </div>
@@ -989,6 +1095,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
 }
 
 function PatientDashboard({ patient, onNavigate }) {
+  const isNarrow = useIsNarrow(700);
   const v = latestVitals(patient);
   const abnormal = isAbnormal(v);
   return (
@@ -1008,7 +1115,7 @@ function PatientDashboard({ patient, onNavigate }) {
         </Card>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 20 }}>
         <Card style={{ cursor: "pointer" }} onClick={() => onNavigate("log")}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <HeartPulse size={16} color={T.mint} />
@@ -1029,6 +1136,7 @@ function PatientDashboard({ patient, onNavigate }) {
 }
 
 function VitalsLogSection({ patient, onUpdate }) {
+  const isNarrow = useIsNarrow(480);
   const [form, setForm] = useState({ sys: "", dia: "", sugar: "", weight: "", symptom: "" });
   const [saved, setSaved] = useState(false);
 
@@ -1048,7 +1156,7 @@ function VitalsLogSection({ patient, onUpdate }) {
     <div>
       <SectionHeader eyebrow="Daily check-in" title="Log your vitals" />
       <Card style={{ maxWidth: 460 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 14 }}>
           <Field label="Systolic (mmHg)"><input type="number" value={form.sys} onChange={(e) => setForm({ ...form, sys: e.target.value })} style={inputStyle} placeholder="120" /></Field>
           <Field label="Diastolic (mmHg)"><input type="number" value={form.dia} onChange={(e) => setForm({ ...form, dia: e.target.value })} style={inputStyle} placeholder="80" /></Field>
           <Field label="Blood sugar (mg/dL)"><input type="number" value={form.sugar} onChange={(e) => setForm({ ...form, sugar: e.target.value })} style={inputStyle} placeholder="110" /></Field>
@@ -1278,12 +1386,12 @@ function AdminPortal({ patients, onExit }) {
             <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 14 }}>Patients by condition</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {patients.map((p) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 130, fontSize: 13, color: T.textPrimary }}>{p.name}</div>
-                  <div style={{ flex: 1, height: 6, borderRadius: 4, background: T.bgElevated, overflow: "hidden" }}>
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ width: 130, flexShrink: 0, fontSize: 13, color: T.textPrimary }}>{p.name}</div>
+                  <div style={{ flex: 1, minWidth: 80, height: 6, borderRadius: 4, background: T.bgElevated, overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(100, (p.tags.length / 3) * 100)}%`, height: "100%", background: T.blue }} />
                   </div>
-                  <div style={{ fontSize: 12, color: T.textTertiary, width: 150 }}>{p.condition}</div>
+                  <div style={{ fontSize: 12, color: T.textTertiary, width: 150, flexShrink: 0, textAlign: "right" }}>{p.condition}</div>
                 </div>
               ))}
             </div>
