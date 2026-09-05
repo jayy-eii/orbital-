@@ -1316,6 +1316,37 @@ Respond with ONLY the summary text, nothing else.`;
   );
 }
 
+function PatientSummarySection({ patient }) {
+  const notesSorted = [...patient.notes].reverse();
+
+  return (
+    <div>
+      <SectionHeader eyebrow="Everything in one place" title="My summary" />
+      <div>
+        <div style={{ ...heading, fontSize: 15, fontWeight: 600, color: T.textPrimary, marginBottom: 12 }}>Past visit notes</div>
+        {notesSorted.length === 0 ? (
+          <Card><div style={{ fontSize: 13, color: T.textTertiary }}>No visit notes on file yet.</div></Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {notesSorted.map((n) => (
+              <Card key={n.id}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textTertiary }}>
+                    <CalendarDays size={13} /> {n.date}
+                  </div>
+                  {n.approved && <Pill tone="mint"><Check size={11} /> Reviewed by doctor</Pill>}
+                </div>
+                <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.55, marginBottom: 6 }}><strong>What was found: </strong>{n.soap.assessment}</div>
+                <div style={{ fontSize: 13, color: T.textPrimary, lineHeight: 1.55 }}><strong>Plan: </strong>{n.soap.plan}</div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NotificationsSection({ patient }) {
   const items = [
     { icon: HeartPulse, color: T.mint, text: "Your last BP reading was within range — nice work staying consistent.", time: "2h ago" },
