@@ -27,23 +27,35 @@ function useFonts() {
 }
 
 const T = {
-  bg: "#0A0B0D",
-  bgElevated: "#111318",
-  surface: "#16181D",
-  surfaceHover: "#1D2026",
-  border: "#262A31",
-  borderStrong: "#383D46",
-  textPrimary: "#EDEFF2",
-  textSecondary: "#969CA6",
-  textTertiary: "#5C616B",
-  accent: "#E8A33D",
-  accentSoft: "rgba(232,163,61,0.13)",
-  mint: "#4FB286",
-  mintSoft: "rgba(79,178,134,0.13)",
-  red: "#E2574C",
-  redSoft: "rgba(226,87,76,0.14)",
-  blue: "#6C93E8",
-  blueSoft: "rgba(108,147,232,0.13)",
+  // Main backgrounds
+  bg: "#F7F8F6",
+  bgElevated: "#FFFFFF",
+
+  // Cards / surfaces
+  surface: "#FFFFFF",
+  surfaceHover: "#F1F4F2",
+
+  // Borders
+  border: "#E2E6E3",
+  borderStrong: "#CBD2CE",
+
+  // Text
+  textPrimary: "#17201C",
+  textSecondary: "#66736D",
+  textTertiary: "#89948E",
+
+  // Accents
+  accent: "#D98A24",
+  accentSoft: "rgba(217,138,36,0.12)",
+
+  mint: "#2F9B72",
+  mintSoft: "rgba(47,155,114,0.12)",
+
+  red: "#D94B43",
+  redSoft: "rgba(217,75,67,0.12)",
+
+  blue: "#5278D4",
+  blueSoft: "rgba(82,120,212,0.12)",
 };
 
 const heading = { fontFamily: "'Space Grotesk', sans-serif" };
@@ -205,7 +217,7 @@ function Pill({ children, tone = "neutral", style }) {
 
 function Button({ children, onClick, variant = "primary", icon: Icon, style, disabled, type = "button" }) {
   const variants = {
-    primary: { background: T.accent, color: "#1A1305", border: "1px solid transparent" },
+    primary: { background: T.accent, color: "#FFFFFF", border: "1px solid transparent" },
     ghost: { background: "transparent", color: T.textPrimary, border: `1px solid ${T.border}` },
     subtle: { background: T.bgElevated, color: T.textSecondary, border: `1px solid ${T.border}` },
     danger: { background: T.redSoft, color: T.red, border: "1px solid transparent" },
@@ -646,7 +658,7 @@ function Toggle({ defaultOn = false, onChange }) {
       background: on ? T.accent : T.border, position: "relative", transition: "background .15s",
     }}>
       <div style={{
-        width: 16, height: 16, borderRadius: "50%", background: "#0A0B0D", position: "absolute", top: 3,
+        width: 16, height: 16, borderRadius: "50%", background: "#FFFFFF", position: "absolute", top: 3,
         left: on ? 19 : 3, transition: "left .15s",
       }} />
     </button>
