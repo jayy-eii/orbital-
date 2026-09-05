@@ -282,21 +282,46 @@ const inputStyle = {
 };
 
 /* ---------------------------------------------------------------------- */
-/* AI helper                                                               */
+/* AI helper — calls a local Ollama server                                */
 /* ---------------------------------------------------------------------- */
 
+// Change this if your Ollama model name is different (check with `ollama list`)
+const OLLAMA_MODEL = "llama3.1:latest";
+const OLLAMA_URL = "http://localhost:11434/api/chat";
+
 async function askClaude(prompt) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  let response;
+  try {
+    response = await fetch(OLLAMA_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+      }),
+    });
+  } catch (networkErr) {
+    throw new Error(
+      `Could not reach Ollama at ${OLLAMA_URL}. Make sure "ollama serve" is running and that this app is opened from http://localhost (not an https:// sandbox). Original error: ${networkErr.message}`
+    );
+  }
+
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    throw new Error(`Ollama returned ${response.status} ${response.statusText}. ${bodyText}`);
+  }
+
   const data = await response.json();
-  const text = (data.content || []).map((b) => b.text || "").join("\n");
+
+  if (data.error) {
+    throw new Error(`Ollama error: ${data.error}`);
+  }
+
+  const text = data.message?.content;
+  if (!text) {
+    throw new Error("Ollama responded but returned no message content.");
+  }
   return text;
 }
 
@@ -811,7 +836,8 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
       setDraft(parsed);
       if (parsed.suggestedTags) setSelectedTags((prev) => Array.from(new Set([...prev, ...parsed.suggestedTags])));
     } catch (e) {
-      setError("Couldn't generate the note. You can try again or write it manually below.");
+      console.error("SOAP note generation failed:", e);
+      setError(e.message || "Couldn't generate the note. You can try again or write it manually below.");
     } finally {
       setLoading(false);
     }
@@ -844,7 +870,7 @@ Pick suggestedTags only from this list: ${DIAGNOSIS_TAGS.join(", ")}.`;
         <Button style={{ marginTop: 12 }} icon={loading ? Loader2 : Sparkles} onClick={generate} disabled={loading || !freeText.trim()}>
           {loading ? "Generating…" : "Generate SOAP note with AI"}
         </Button>
-        {error && <div style={{ color: T.red, fontSize: 12.5, marginTop: 10 }}>{error}</div>}
+        {error && <div style={{ color: T.red, fontSize: 12.5, marginTop: 10, lineHeight: 1.5 }}>{error}</div>}
 
         <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 12.5, color: T.textSecondary, marginBottom: 8, fontWeight: 500 }}>Diagnosis tags</div>
@@ -944,7 +970,7 @@ function PatientPortal({ patients, setPatients, onExit }) {
     { key: "log", label: "Log vitals", icon: HeartPulse },
     { key: "trends", label: "Trends", icon: TrendingUp },
     { key: "careplan", label: "Care plan", icon: ClipboardList },
-    { key: "meds", label: "Medications", icon: Pill },
+    { key: "meds", label: "Medications", icon: PillIcon },
     { key: "symptoms", label: "Symptom log", icon: FileText },
     { key: "summary", label: "Visit summary", icon: Sparkles },
     { key: "notifications", label: "Notifications", icon: Bell, badge: 2 },
@@ -1147,11 +1173,13 @@ function SymptomLogSection({ patient, onUpdate }) {
 
 function VisitSummarySection({ patient, onUpdate }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const lastNote = patient.notes[patient.notes.length - 1];
 
   const generate = async () => {
     if (!lastNote) return;
     setLoading(true);
+    setError("");
     try {
       const prompt = `Rewrite this doctor's SOAP note as a short, warm, plain-language after-visit summary for the patient (2-4 sentences, no medical jargon, second person "you"). 
 Subjective: ${lastNote.soap.subjective}
@@ -1162,7 +1190,8 @@ Respond with ONLY the summary text, nothing else.`;
       const text = await askClaude(prompt);
       onUpdate((p) => ({ ...p, afterVisitSummary: text.trim() }));
     } catch (e) {
-      // silent fail, keep existing summary
+      console.error("Visit summary generation failed:", e);
+      setError(e.message || "Couldn't generate the summary right now.");
     } finally {
       setLoading(false);
     }
@@ -1177,6 +1206,7 @@ Respond with ONLY the summary text, nothing else.`;
         ) : (
           <p style={{ fontSize: 13.5, color: T.textTertiary, margin: 0 }}>No summary yet for the latest visit.</p>
         )}
+        {error && <div style={{ color: T.red, fontSize: 12.5, marginTop: 12, lineHeight: 1.5 }}>{error}</div>}
         {lastNote && (
           <Button variant="subtle" icon={loading ? Loader2 : Sparkles} onClick={generate} disabled={loading} style={{ marginTop: 16 }}>
             {loading ? "Rewriting…" : "Regenerate in plain language"}
